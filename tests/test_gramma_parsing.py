@@ -3,10 +3,12 @@ from ntt_parser import Gramma
 
 def assert_machine(
     gramma: Gramma,
+    start_non_terminal: str,
     terminals: list[str],
     non_terminals: list[str],
     productions: list[tuple[str, list[str]]],
 ) -> None:
+    assert gramma.StartNonTerminal == start_non_terminal
     assert gramma.Terminals == list(set(terminals))
     assert gramma.NonTerminals == list(set(non_terminals))
     assert gramma.Productions == productions
@@ -27,6 +29,7 @@ def test_simple_1_product():
 
     assert_machine(
         gramma,
+        "S",
         terminals=["a", "b"],
         non_terminals=["S"],
         productions=[("S", ["a", "b"])],
@@ -52,6 +55,7 @@ def test_gramma_with_non_terminal_in_production():
 
     assert_machine(
         gramma,
+        "S",
         terminals=["a", "b"],
         non_terminals=["S", "A"],
         productions=[("S", ["A", "b"]), ("A", ["a"])],
@@ -78,6 +82,7 @@ def test_gramma_with_multiple_productions():
 
     assert_machine(
         gramma,
+        "S",
         terminals=["a", "b", "acc"],
         non_terminals=["S", "A"],
         productions=[("S", ["A", "b"]), ("S", ["acc"]), ("A", ["a"])],

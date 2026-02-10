@@ -10,6 +10,7 @@ class Gramma:
         self._terminals: set[str] = set()
         self._non_terminals: set[str] = set()
         self._productions: list[tuple[str, list[str]]] = []
+        self._start_non_terminal: str = ""
         self._parse_gramma_part(gramma_part)
 
     def _parse_gramma_part(self, gramma_part: str) -> None:
@@ -22,6 +23,8 @@ class Gramma:
 
             left_side = gramma_part[current_cursor:next_non_terminal].strip()
             self._non_terminals.add(left_side)
+            if not self._start_non_terminal:
+                self._start_non_terminal = left_side
             current_cursor = next_non_terminal + 1
 
             production_end = gramma_part.find(";", current_cursor)
@@ -88,3 +91,10 @@ class Gramma:
     @property
     def Productions(self) -> list[tuple[str, list[str]]]:
         return self._productions
+
+    @property
+    def StartNonTerminal(self) -> str:
+        if not self._non_terminals:
+            raise ValueError("No non-terminals defined in the gramma")
+
+        return self._start_non_terminal
