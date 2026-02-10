@@ -89,6 +89,33 @@ def test_gramma_with_multiple_productions():
     )
 
 
+def test_gramma_with_returns():
+    gramma_str = """
+    /start-gramma
+
+    S: 
+        A "b" { $$ = $1 }
+        | "acc" { $$ = $1 }
+        ;
+
+    A:
+        "a" { $$ = $1 }
+        ;
+
+    /end-gramma
+"""
+
+    gramma = Gramma.parse(gramma_str)
+
+    assert_machine(
+        gramma,
+        "S",
+        terminals=["a", "b", "acc"],
+        non_terminals=["S", "A"],
+        productions=[("S", ["A", "b"]), ("S", ["acc"]), ("A", ["a"])],
+    )
+
+
 def test_macro():
     gramma_str = """
     /start-macro

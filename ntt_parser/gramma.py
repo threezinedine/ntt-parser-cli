@@ -90,6 +90,11 @@ class Gramma:
                     ]
 
                 current_production_str = current_production_str.strip()
+
+                current_production_str, _ = Gramma._get_return_part(
+                    current_production_str
+                )
+
                 if current_production_str[-1] == "\n":
                     current_production_str = current_production_str[:-1].strip()
 
@@ -119,6 +124,24 @@ class Gramma:
 
                 if current_production_end == -1:
                     break
+
+    @staticmethod
+    def _get_return_part(part: str) -> tuple[str, str | None]:
+        part = part.strip()
+
+        left_bracket_index = part.find("{")
+        right_bracket_index = part.find("}")
+
+        if left_bracket_index == -1 or right_bracket_index == -1:
+            return part, None
+
+        if right_bracket_index < left_bracket_index:
+            raise ValueError("Invalid return part format")
+
+        return (
+            part[:left_bracket_index].strip(),
+            part[left_bracket_index + 1 : right_bracket_index].strip(),
+        )
 
     @property
     def Terminals(self) -> list[str]:
