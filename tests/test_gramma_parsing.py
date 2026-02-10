@@ -1,0 +1,84 @@
+from ntt_parser import Gramma
+
+
+def assert_machine(
+    gramma: Gramma,
+    terminals: list[str],
+    non_terminals: list[str],
+    productions: list[tuple[str, list[str]]],
+) -> None:
+    assert gramma.Terminals == list(set(terminals))
+    assert gramma.NonTerminals == list(set(non_terminals))
+    assert gramma.Productions == productions
+
+
+def test_simple_1_product():
+    gramma_str = """
+    /start-gramma
+
+    S: 
+        "a" "b"
+        ;
+
+    /end-gramma
+"""
+
+    gramma = Gramma.parse(gramma_str)
+
+    assert_machine(
+        gramma,
+        terminals=["a", "b"],
+        non_terminals=["S"],
+        productions=[("S", ["a", "b"])],
+    )
+
+
+def test_gramma_with_non_terminal_in_production():
+    gramma_str = """
+    /start-gramma
+
+    S: 
+        A "b"
+        ;
+
+    A:
+        "a"
+        ;
+
+    /end-gramma
+"""
+
+    gramma = Gramma.parse(gramma_str)
+
+    assert_machine(
+        gramma,
+        terminals=["a", "b"],
+        non_terminals=["S", "A"],
+        productions=[("S", ["A", "b"]), ("A", ["a"])],
+    )
+
+
+def test_gramma_with_multiple_productions():
+    gramma_str = """
+    /start-gramma
+
+    S: 
+        A "b"
+        | "acc"
+        ;
+
+    A:
+        "a"
+        ;
+
+    /end-gramma
+"""
+
+    gramma = Gramma.parse(gramma_str)
+
+    assert_machine(
+        gramma,
+        terminals=["a", "b", "acc"],
+        non_terminals=["S", "A"],
+        productions=[("S", ["A", "b"]), ("S", ["acc"]), ("A", ["a"])],
+    )
