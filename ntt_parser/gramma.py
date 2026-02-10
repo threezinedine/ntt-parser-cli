@@ -1,10 +1,50 @@
 class Gramma:
     @staticmethod
     def parse(gramma_str: str) -> "Gramma":
-        gramma_part = (
-            gramma_str.split("/start-gramma")[1].split("/end-gramma")[0].strip()
-        )
+        macro_part = Gramma.parser_section(gramma_str, "macro")
+        if macro_part is None:
+            macros = {}
+        else:
+            macros = Gramma.macro_parse(macro_part)
+
+        gramma_part = Gramma.parser_section(gramma_str, "gramma")
+        assert gramma_part is not None, "No /start-gramma ... /end-gramma section found"
+
+        for macro_name, macro_value in macros.items():
+            gramma_part = gramma_part.replace(macro_name, macro_value)
+
         return Gramma(gramma_part)
+
+    @staticmethod
+    def parser_section(content: str, section_header: str) -> str | None:
+        try:
+            section_content = (
+                content.split(f"/start-{section_header}")[1]
+                .split(f"/end-{section_header}")[0]
+                .strip()
+            )
+            return section_content
+        except IndexError:
+            return None
+
+    @staticmethod
+    def macro_parse(macro_str: str) -> dict[str, str]:
+        macro_str = macro_str.strip()
+        macro_strs = macro_str.split("\n")
+        macros: dict[str, str] = {}
+
+        for line in macro_strs:
+            line = line.strip()
+            if line == "":
+                continue
+
+            if ":" not in line:
+                raise ValueError(f"Invalid macro definition: {line}")
+
+            macro_name, macro_value = line.split(":", 1)
+            macros[macro_name.strip()] = macro_value.strip()
+
+        return macros
 
     def __init__(self, gramma_part: str) -> None:
         self._terminals: set[str] = set()

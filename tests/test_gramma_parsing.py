@@ -87,3 +87,49 @@ def test_gramma_with_multiple_productions():
         non_terminals=["S", "A"],
         productions=[("S", ["A", "b"]), ("S", ["acc"]), ("A", ["a"])],
     )
+
+
+def test_macro():
+    gramma_str = """
+    /start-macro
+
+    TERM: Term
+
+    /end-macro
+
+    /start-gramma
+
+    Expr:
+         TERM "+" Expr
+        | TERM 
+        ;
+
+    TERM:
+        Factor "*" TERM 
+        | Factor
+        ;
+
+    Factor:
+        "(" Expr ")"
+        | "num"
+        ;
+
+    /end-gramma
+"""
+
+    gramma = Gramma.parse(gramma_str)
+
+    assert_machine(
+        gramma,
+        "Expr",
+        terminals=["+", "*", "(", ")", "num"],
+        non_terminals=["Expr", "Term", "Factor"],
+        productions=[
+            ("Expr", ["Term", "+", "Expr"]),
+            ("Expr", ["Term"]),
+            ("Term", ["Factor", "*", "Term"]),
+            ("Term", ["Factor"]),
+            ("Factor", ["(", "Expr", ")"]),
+            ("Factor", ["num"]),
+        ],
+    )
