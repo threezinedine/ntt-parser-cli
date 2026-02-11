@@ -19,6 +19,13 @@ class Token:
 class Gramma:
     @staticmethod
     def parse(gramma_str: str) -> "Gramma":
+        lexma_part = Gramma.parser_section(gramma_str, "lexma")
+
+        if lexma_part is None:
+            lexicals: dict[str, str] = {}
+        else:
+            lexicals: dict[str, str] = Gramma.lexical_parse(lexma_part)
+
         macro_part = Gramma.parser_section(gramma_str, "macro")
         if macro_part is None:
             macros = {}
@@ -31,7 +38,26 @@ class Gramma:
         for macro_name, macro_value in macros.items():
             gramma_part = gramma_part.replace(macro_name, macro_value)
 
-        return Gramma(gramma_part)
+        return Gramma(gramma_part, lexicals)
+
+    @staticmethod
+    def lexical_parse(lexma_str: str) -> dict[str, str]:
+        lexma_str = lexma_str.strip()
+        lexma_strs = lexma_str.split("\n")
+        lexicals: dict[str, str] = {}
+
+        for line in lexma_strs:
+            line = line.strip()
+            if line == "":
+                continue
+
+            if ":" not in line:
+                raise ValueError(f"Invalid lexical definition: {line}")
+
+            lexical_name, lexical_value = line.split(":", 1)
+            lexicals[lexical_name.strip()] = lexical_value.strip()
+
+        return lexicals
 
     @staticmethod
     def parser_section(content: str, section_header: str) -> str | None:
@@ -64,12 +90,13 @@ class Gramma:
 
         return macros
 
-    def __init__(self, gramma_part: str) -> None:
+    def __init__(self, gramma_part: str, lexicals: dict[str, str]) -> None:
         self._terminals: set[str] = set()
         self._non_terminals: set[str] = set()
         self._productions: list[tuple[str, list[str], str | None]] = []
         self._start_non_terminal: str = ""
         self._first_set: dict[str, set[str]] = {}
+        self._lexicals: dict[str, str] = lexicals
 
         tokens = self._lexical_analysis(gramma_part)
         self._parse_gramma_part(tokens)
@@ -166,7 +193,7 @@ class Gramma:
                 for part in production_parts:
                     part = part.strip()
                     if part.startswith('"') and part.endswith('"'):
-                        terminal_value = part[1:-1]
+                        terminal_value = part
                         self._terminals.add(terminal_value)
                         partion_parts.append(terminal_value)
                     else:
@@ -276,6 +303,10 @@ class Gramma:
 
         productions = [p for p in self._productions if p[0] == non_terminal]
 
+        assert (
+            len(productions) > 0
+        ), f"No productions found for non-terminal '{non_terminal}'"
+
         for production in productions:
             dependencies = production[1]
 
@@ -294,9 +325,12 @@ class Gramma:
                         continue
                     else:
                         break
+                elif dependencies[dep_index] in self._lexicals:
+                    self._first_set[non_terminal].add(dependencies[dep_index])
+                    break
 
                 self._parse_non_terminal_first_set(dependencies[dep_index])
-                if "" in dependencies[dep_index]:
+                if '""' in dependencies[dep_index]:
                     dep_index += 1
                 else:
                     break

@@ -51,9 +51,9 @@ def test_simple_1_product():
     assert_machine(
         gramma,
         "S",
-        terminals=["a", "b"],
+        terminals=['"a"', '"b"'],
         non_terminals=["S"],
-        productions=[("S", ["a", "b"], None)],
+        productions=[("S", ['"a"', '"b"'], None)],
     )
 
 
@@ -77,9 +77,9 @@ def test_gramma_with_non_terminal_in_production():
     assert_machine(
         gramma,
         "S",
-        terminals=["a", "b"],
+        terminals=['"a"', '"b"'],
         non_terminals=["S", "A"],
-        productions=[("S", ["A", "b"], None), ("A", ["a"], None)],
+        productions=[("S", ["A", '"b"'], None), ("A", ['"a"'], None)],
     )
 
 
@@ -104,9 +104,13 @@ def test_gramma_with_multiple_productions():
     assert_machine(
         gramma,
         "S",
-        terminals=["a", "b", "acc"],
+        terminals=['"a"', '"b"', '"acc"'],
         non_terminals=["S", "A"],
-        productions=[("S", ["A", "b"], None), ("S", ["acc"], None), ("A", ["a"], None)],
+        productions=[
+            ("S", ["A", '"b"'], None),
+            ("S", ['"acc"'], None),
+            ("A", ['"a"'], None),
+        ],
     )
 
 
@@ -131,12 +135,12 @@ def test_gramma_with_returns():
     assert_machine(
         gramma,
         "S",
-        terminals=["a", "b", "acc"],
+        terminals=['"a"', '"b"', '"acc"'],
         non_terminals=["S", "A"],
         productions=[
-            ("S", ["A", "b"], " $$ = $1; "),
-            ("S", ["acc"], " $$ = $1; "),
-            ("A", ["a"], " $$ = $1; "),
+            ("S", ["A", '"b"'], " $$ = $1; "),
+            ("S", ['"acc"'], " $$ = $1; "),
+            ("A", ['"a"'], " $$ = $1; "),
         ],
     )
 
@@ -174,15 +178,15 @@ def test_macro():
     assert_machine(
         gramma,
         "Expr",
-        terminals=["+", "*", "(", ")", "num"],
+        terminals=['"+"', '"*"', '"("', '")"', '"num"'],
         non_terminals=["Expr", "Term", "Factor"],
         productions=[
-            ("Expr", ["Term", "+", "Expr"], None),
+            ("Expr", ["Term", '"+"', "Expr"], None),
             ("Expr", ["Term"], None),
-            ("Term", ["Factor", "*", "Term"], None),
+            ("Term", ["Factor", '"*"', "Term"], None),
             ("Term", ["Factor"], None),
-            ("Factor", ["(", "Expr", ")"], None),
-            ("Factor", ["num"], None),
+            ("Factor", ['"("', "Expr", '")"'], None),
+            ("Factor", ['"num"'], None),
         ],
     )
 
@@ -208,11 +212,11 @@ def test_parse_with_esp():
     assert_machine(
         gramma,
         "S",
-        terminals=["a", "x", ""],
+        terminals=['"a"', '"x"', '""'],
         non_terminals=["S", "A"],
         productions=[
-            ("S", ["a", "A"], None),
-            ("A", ["x"], None),
-            ("A", [""], None),
+            ("S", ['"a"', "A"], None),
+            ("A", ['"x"'], None),
+            ("A", ['""'], None),
         ],
     )

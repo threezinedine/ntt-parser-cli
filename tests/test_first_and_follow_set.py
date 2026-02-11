@@ -71,8 +71,8 @@ def test_create_first_and_follow_sets():
     assert_first_set_machine(
         gramma,
         [
-            ("S", {"a", "acc"}),
-            ("A", {"a"}),
+            ("S", {'"a"', '"acc"'}),
+            ("A", {'"a"'}),
         ],
     )
 
@@ -101,14 +101,20 @@ def test_first_set_with_epsilon_production():
     assert_first_set_machine(
         gramma,
         [
-            ("S", {"", "a", "b", "acc"}),
-            ("A", {"", "a"}),
+            ("S", {'""', '"a"', '"acc"'}),
+            ("A", {'""', '"a"'}),
         ],
     )
 
 
 def test_first_set_for_complex_case():
     gramma_str = """
+    /start-lexma
+
+    number: /[0-9]+/
+
+    /end-lexma
+
     /start-gramma
 
     E: T E';
@@ -124,7 +130,7 @@ def test_first_set_for_complex_case():
         ;
 
     F: "(" E ")"
-        | "0"
+        | number
         ;
 
 
@@ -138,10 +144,10 @@ def test_first_set_for_complex_case():
     assert_first_set_machine(
         gramma,
         [
-            ("E", {"(", "0"}),
-            ("E'", {"+", ""}),
-            ("T", {"(", "0"}),
-            ("T'", {"*", ""}),
-            ("F", {"(", "0"}),
+            ("E", {'"("', "number"}),
+            ("E'", {'"+"', ""}),
+            ("T", {'"("', "number"}),
+            ("T'", {'"*"', ""}),
+            ("F", {'"("', "number"}),
         ],
     )
