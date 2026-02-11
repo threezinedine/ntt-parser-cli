@@ -70,8 +70,6 @@ class Gramma:
         self._productions: list[tuple[str, list[str]]] = []
         self._start_non_terminal: str = ""
         tokens = self._lexical_analysis(gramma_part)
-        for token in tokens:
-            print(f"Token: {token.type} -> {token.value}")
         self._parse_gramma_part(tokens)
 
     def _lexical_analysis(self, gramma_part: str) -> list[Token]:
@@ -211,24 +209,6 @@ class Gramma:
             cursor += 1
 
         return -1
-
-    @staticmethod
-    def _get_return_part(part: str) -> tuple[str, str | None]:
-        part = part.strip()
-
-        left_bracket_index = part.find("{")
-        right_bracket_index = part.find("}")
-
-        if left_bracket_index == -1 or right_bracket_index == -1:
-            return part, None
-
-        if right_bracket_index < left_bracket_index:
-            raise ValueError("Invalid return part format")
-
-        return (
-            part[:left_bracket_index].strip(),
-            part[left_bracket_index + 1 : right_bracket_index].strip(),
-        )
 
     @staticmethod
     def _extract_block(content: str, start_index: int) -> tuple[str, str, int]:
