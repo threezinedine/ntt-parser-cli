@@ -67,7 +67,7 @@ class Gramma:
     def __init__(self, gramma_part: str) -> None:
         self._terminals: set[str] = set()
         self._non_terminals: set[str] = set()
-        self._productions: list[tuple[str, list[str]]] = []
+        self._productions: list[tuple[str, list[str], str | None]] = []
         self._start_non_terminal: str = ""
         tokens = self._lexical_analysis(gramma_part)
         self._parse_gramma_part(tokens)
@@ -170,9 +170,17 @@ class Gramma:
                     else:
                         partion_parts.append(part)
 
-                self._productions.append((current_left_side.value, partion_parts))
-
-                current_production_index += 1
+                if tokens[current_production_index + 1].type == GrammaToken.RETURN:
+                    return_action = tokens[current_production_index + 1].value
+                    self._productions.append(
+                        (current_left_side.value, partion_parts, return_action)
+                    )
+                    current_production_index += 2
+                else:
+                    self._productions.append(
+                        (current_left_side.value, partion_parts, None)
+                    )
+                    current_production_index += 1
 
                 if tokens[current_production_index].type == GrammaToken.RIGHT_SIDE:
                     continue
@@ -180,16 +188,6 @@ class Gramma:
                 if tokens[current_production_index].type == GrammaToken.SEMICOLON:
                     cursor = current_production_index + 1
                     break
-
-                if tokens[current_production_index].type == GrammaToken.RETURN:
-                    if (
-                        tokens[current_production_index + 1].type
-                        == GrammaToken.SEMICOLON
-                    ):
-                        cursor = current_production_index + 2
-                        break
-                    else:
-                        current_production_index += 1
 
             if cursor >= len(tokens):
                 break
@@ -244,7 +242,7 @@ class Gramma:
         return list(self._non_terminals)
 
     @property
-    def Productions(self) -> list[tuple[str, list[str]]]:
+    def Productions(self) -> list[tuple[str, list[str], str | None]]:
         return self._productions
 
     @property
