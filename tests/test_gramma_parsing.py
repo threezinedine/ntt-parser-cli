@@ -9,9 +9,13 @@ def assert_machine(
     productions: list[tuple[str, list[str]]],
 ) -> None:
     assert gramma.StartNonTerminal == start_non_terminal
-    assert gramma.Terminals == list(set(terminals))
-    assert gramma.NonTerminals == list(set(non_terminals))
+    _assert_2lists_equal_ignore_order(gramma.Terminals, terminals)
+    _assert_2lists_equal_ignore_order(gramma.NonTerminals, non_terminals)
     assert gramma.Productions == productions
+
+
+def _assert_2lists_equal_ignore_order(list1: list[str], list2: list[str]) -> None:
+    assert sorted(list1) == sorted(list2), f"{list1} != {list2}"
 
 
 def test_simple_1_product():
@@ -94,12 +98,12 @@ def test_gramma_with_returns():
     /start-gramma
 
     S: 
-        A "b" { $$ = $1 }
-        | "acc" { $$ = $1 }
+        A "b" { $$ = $1; }
+        | "acc" { $$ = $1; }
         ;
 
     A:
-        "a" { $$ = $1 }
+        "a" { $$ = $1; }
         ;
 
     /end-gramma

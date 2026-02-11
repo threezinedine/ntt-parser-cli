@@ -1,3 +1,21 @@
+from dataclasses import dataclass
+from enum import Enum, auto
+
+
+class GrammaToken(Enum):
+    LEFT_SIDE = auto()
+    RIGHT_SIDE = auto()
+    RETURN = auto()
+    COLON = auto()
+    SEMICOLON = auto()
+
+
+@dataclass
+class Token:
+    type: GrammaToken
+    value: str
+
+
 class Gramma:
     @staticmethod
     def parse(gramma_str: str) -> "Gramma":
@@ -51,79 +69,148 @@ class Gramma:
         self._non_terminals: set[str] = set()
         self._productions: list[tuple[str, list[str]]] = []
         self._start_non_terminal: str = ""
-        self._parse_gramma_part(gramma_part)
+        tokens = self._lexical_analysis(gramma_part)
+        for token in tokens:
+            print(f"Token: {token.type} -> {token.value}")
+        self._parse_gramma_part(tokens)
 
-    def _parse_gramma_part(self, gramma_part: str) -> None:
-        current_cursor = 0
+    def _lexical_analysis(self, gramma_part: str) -> list[Token]:
+        cursor = 0
+        token_hold_cursor = 0
+        tokens: list[Token] = []
 
-        while True:
-            next_non_terminal = gramma_part.find(":", current_cursor)
-            if next_non_terminal == -1:
-                return
+        while cursor < len(gramma_part):
+            current_char = gramma_part[cursor]
 
-            left_side = gramma_part[current_cursor:next_non_terminal].strip()
-            self._non_terminals.add(left_side)
-            if not self._start_non_terminal:
-                self._start_non_terminal = left_side
-            current_cursor = next_non_terminal + 1
-
-            production_end = gramma_part.find(";", current_cursor)
-
-            if production_end == -1:
-                raise ValueError("Production must end with ';'")
-
-            production_str = gramma_part[current_cursor:production_end].strip()
-            current_cursor = production_end + 1
-
-            current_production_cursor = 0
-
-            while True:
-                current_production_end = production_str.find(
-                    "|", current_production_cursor
-                )
-
-                if current_production_end == -1:
-                    current_production_str = production_str[current_production_cursor:]
-                else:
-                    current_production_str = production_str[
-                        current_production_cursor:current_production_end
-                    ]
-
-                current_production_str = current_production_str.strip()
-
-                current_production_str, _ = Gramma._get_return_part(
-                    current_production_str
-                )
-
-                if current_production_str[-1] == "\n":
-                    current_production_str = current_production_str[:-1].strip()
-
-                current_production_cursor = current_production_end + 1
-
-                production_symbols = current_production_str.split(" ")
-
-                production_right_side: list[str] = []
-
-                for symbol in production_symbols:
-                    if symbol == "":
-                        continue
-
-                    if symbol.startswith('"') and symbol.endswith('"'):
-                        self._terminals.add(symbol[1:-1])
-                        production_right_side.append(symbol[1:-1])
-                    else:
-                        self._non_terminals.add(symbol)
-                        production_right_side.append(symbol)
-
-                self._productions.append(
-                    (
-                        left_side,
-                        production_right_side,
+            if current_char == ":":
+                tokens.append(
+                    Token(
+                        GrammaToken.LEFT_SIDE,
+                        gramma_part[token_hold_cursor:cursor].strip(),
                     )
                 )
+                tokens.append(Token(GrammaToken.COLON, ":"))
+                cursor += 1
+                token_hold_cursor = cursor
+            elif current_char == "{":
+                return_part, _, next_cursor = Gramma._extract_block(gramma_part, cursor)
+                tokens.append(
+                    Token(
+                        GrammaToken.RIGHT_SIDE,
+                        gramma_part[token_hold_cursor:cursor].strip(),
+                    )
+                )
+                tokens.append(Token(GrammaToken.RETURN, return_part))
+                cursor = next_cursor
+                token_hold_cursor = cursor
+            elif current_char == ";":
+                if token_hold_cursor != cursor:
+                    tokens.append(
+                        Token(
+                            GrammaToken.RIGHT_SIDE,
+                            gramma_part[token_hold_cursor:cursor].strip(),
+                        )
+                    )
 
-                if current_production_end == -1:
+                tokens.append(Token(GrammaToken.SEMICOLON, ";"))
+                cursor += 1
+                token_hold_cursor = cursor
+            elif current_char == "|":
+                if token_hold_cursor != cursor:
+                    tokens.append(
+                        Token(
+                            GrammaToken.RIGHT_SIDE,
+                            gramma_part[token_hold_cursor:cursor].strip(),
+                        )
+                    )
+
+                cursor += 1
+                token_hold_cursor = cursor
+            else:
+                cursor += 1
+
+        tokens = list(filter(lambda t: t.value != "", tokens))
+
+        return tokens
+
+    def _parse_gramma_part(self, tokens: list[Token]) -> None:
+        assert tokens[-1].type == GrammaToken.SEMICOLON, "Gramma must end with ';'"
+        cursor = 0
+        current_left_side = tokens[cursor]
+        assert (
+            current_left_side.type == GrammaToken.LEFT_SIDE
+        ), "Expected left side non-terminal"
+        self._start_non_terminal = current_left_side.value
+
+        while True:
+            current_left_side = tokens[cursor]
+            assert (
+                current_left_side.type == GrammaToken.LEFT_SIDE
+            ), "Expected left side non-terminal"
+
+            next_semicolon_index = self._find_index(tokens, cursor, GrammaToken.COLON)
+            assert next_semicolon_index != -1, "Expected ';' in gramma"
+
+            self._non_terminals.add(current_left_side.value)
+
+            current_production_index = cursor + 2
+
+            while True:
+                current_production = tokens[current_production_index]
+                assert (
+                    current_production.type == GrammaToken.RIGHT_SIDE
+                ), f"Expected right side production but found {current_production.type} at {current_production_index}"
+
+                production_parts = current_production.value.split(" ")
+                partion_parts: list[str] = []
+                for part in production_parts:
+                    part = part.strip()
+                    if part.startswith('"') and part.endswith('"'):
+                        terminal_value = part[1:-1]
+                        self._terminals.add(terminal_value)
+                        partion_parts.append(terminal_value)
+                    else:
+                        partion_parts.append(part)
+
+                self._productions.append((current_left_side.value, partion_parts))
+
+                current_production_index += 1
+
+                if tokens[current_production_index].type == GrammaToken.RIGHT_SIDE:
+                    continue
+
+                if tokens[current_production_index].type == GrammaToken.SEMICOLON:
+                    cursor = current_production_index + 1
                     break
+
+                if tokens[current_production_index].type == GrammaToken.RETURN:
+                    if (
+                        tokens[current_production_index + 1].type
+                        == GrammaToken.SEMICOLON
+                    ):
+                        cursor = current_production_index + 2
+                        break
+                    else:
+                        current_production_index += 1
+
+            if cursor >= len(tokens):
+                break
+
+    def _find_index(
+        self,
+        tokens: list[Token],
+        start_index: int,
+        token_type: GrammaToken,
+    ) -> int:
+        cursor = start_index
+
+        while cursor < len(tokens):
+            if tokens[cursor].type == token_type:
+                return cursor
+
+            cursor += 1
+
+        return -1
 
     @staticmethod
     def _get_return_part(part: str) -> tuple[str, str | None]:
@@ -141,6 +228,31 @@ class Gramma:
         return (
             part[:left_bracket_index].strip(),
             part[left_bracket_index + 1 : right_bracket_index].strip(),
+        )
+
+    @staticmethod
+    def _extract_block(content: str, start_index: int) -> tuple[str, str, int]:
+        assert content[start_index] == "{", "Block must start with '{'"
+        braceStack = 1
+        cursor = start_index + 1
+
+        while braceStack != 0:
+            if content[cursor] == "{":
+                braceStack += 1
+            elif content[cursor] == "}":
+                braceStack -= 1
+
+            cursor += 1
+
+        next_cursor = cursor
+
+        if cursor >= len(content):
+            next_cursor = -1
+
+        return (
+            content[start_index + 1 : cursor - 1].strip(),
+            content[cursor - 1 :],
+            next_cursor,
         )
 
     @property
