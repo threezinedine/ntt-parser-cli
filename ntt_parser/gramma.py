@@ -69,6 +69,8 @@ class Gramma:
         self._non_terminals: set[str] = set()
         self._productions: list[tuple[str, list[str], str | None]] = []
         self._start_non_terminal: str = ""
+        self._first_set: dict[str, set[str]] = {}
+
         tokens = self._lexical_analysis(gramma_part)
         self._parse_gramma_part(tokens)
 
@@ -251,3 +253,50 @@ class Gramma:
             raise ValueError("No non-terminals defined in the gramma")
 
         return self._start_non_terminal
+
+    def validate(self) -> None:
+        for production in self._productions:
+            for symbol in production[1]:
+                if symbol not in self._terminals and symbol not in self._non_terminals:
+                    raise ValueError(f"Symbol '{symbol}' is not defined in the gramma")
+
+    @property
+    def FirstSet(self) -> list[tuple[str, list[str]]]:
+        return [(k, list(v)) for k, v in self._first_set.items()]
+
+    def parse_first_set(self) -> None:
+        for symbol in self._non_terminals:
+            self._parse_non_terminal_first_set(symbol)
+
+    def _parse_non_terminal_first_set(self, non_terminal: str):
+        if non_terminal not in self._first_set:
+            self._first_set[non_terminal] = set()
+        else:
+            return
+
+        productions = [p for p in self._productions if p[0] == non_terminal]
+
+        for production in productions:
+            dependencies = production[1]
+
+            dep_index = 0
+
+            while dep_index < len(dependencies):
+                if dependencies[dep_index] in self._terminals:
+                    self._first_set[non_terminal].add(dependencies[dep_index])
+                    break
+                elif dependencies[dep_index] in self._first_set:
+                    self._first_set[non_terminal].update(
+                        self._first_set[dependencies[dep_index]]
+                    )
+                    if "" in self._first_set[dependencies[dep_index]]:
+                        dep_index += 1
+                        continue
+                    else:
+                        break
+
+                self._parse_non_terminal_first_set(dependencies[dep_index])
+                if "" in dependencies[dep_index]:
+                    dep_index += 1
+                else:
+                    break

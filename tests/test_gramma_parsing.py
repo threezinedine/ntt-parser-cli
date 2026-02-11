@@ -185,3 +185,34 @@ def test_macro():
             ("Factor", ["num"], None),
         ],
     )
+
+
+def test_parse_with_esp():
+    gramma_str = """
+    /start-gramma
+
+    S:
+        "a" A
+        ;
+
+    A: 
+        "x"
+        | ""
+        ;
+
+    /end-gramma
+"""
+
+    gramma = Gramma.parse(gramma_str)
+
+    assert_machine(
+        gramma,
+        "S",
+        terminals=["a", "x", ""],
+        non_terminals=["S", "A"],
+        productions=[
+            ("S", ["a", "A"], None),
+            ("A", ["x"], None),
+            ("A", [""], None),
+        ],
+    )
