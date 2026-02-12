@@ -330,6 +330,9 @@ class Gramma:
                     break
 
                 self._parse_non_terminal_first_set(dependencies[dep_index])
+                self._first_set[non_terminal].update(
+                    self._first_set[dependencies[dep_index]]
+                )
                 if '""' in dependencies[dep_index]:
                     dep_index += 1
                 else:
