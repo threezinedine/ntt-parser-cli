@@ -96,10 +96,12 @@ class Gramma:
         self._productions: list[tuple[str, list[str], str | None]] = []
         self._start_non_terminal: str = ""
         self._first_set: dict[str, set[str]] = {}
+        self._follow_set: dict[str, set[str]] = {}
         self._lexicals: dict[str, str] = lexicals
 
         tokens = self._lexical_analysis(gramma_part)
         self._parse_gramma_part(tokens)
+        self._parse_first_set()
 
     def _lexical_analysis(self, gramma_part: str) -> list[Token]:
         cursor = 0
@@ -281,17 +283,15 @@ class Gramma:
 
         return self._start_non_terminal
 
-    def validate(self) -> None:
-        for production in self._productions:
-            for symbol in production[1]:
-                if symbol not in self._terminals and symbol not in self._non_terminals:
-                    raise ValueError(f"Symbol '{symbol}' is not defined in the gramma")
-
     @property
     def FirstSet(self) -> list[tuple[str, list[str]]]:
         return [(k, list(v)) for k, v in self._first_set.items()]
 
-    def parse_first_set(self) -> None:
+    @property
+    def FollowSet(self) -> list[tuple[str, list[str]]]:
+        return [(k, list(v)) for k, v in self._follow_set.items()]
+
+    def _parse_first_set(self) -> None:
         for symbol in self._non_terminals:
             self._parse_non_terminal_first_set(symbol)
 
@@ -337,3 +337,71 @@ class Gramma:
                     dep_index += 1
                 else:
                     break
+
+    def parse_follow_set(self) -> None:
+        self._parse_non_terminal_follow_set(self._start_non_terminal)
+
+        for non_terminal in self._non_terminals:
+            self._parse_non_terminal_follow_set(non_terminal)
+
+    def _get_first_set(self, symbols: list[str]) -> set[str]:
+        first_set: set[str] = set()
+
+        index = 0
+
+        while index < len(symbols):
+            symbol = symbols[index]
+
+            if symbol in self._terminals:
+                if symbol == '""':
+                    index += 1
+                    continue
+
+                first_set.add(symbol)
+                break
+
+            if symbol in self._first_set:
+                first_set.update(self._first_set[symbol])
+                if '""' in self._first_set[symbol]:
+                    index += 1
+                    continue
+                else:
+                    break
+
+        return first_set
+
+    def _parse_non_terminal_follow_set(self, non_terminal: str) -> None:
+        if non_terminal not in self._follow_set:
+            self._follow_set[non_terminal] = set()
+        else:
+            return
+
+        if non_terminal == self._start_non_terminal:
+            self._follow_set[non_terminal].add("$")  # End of input marker
+
+        contained_in_productions = [
+            p for p in self._productions if non_terminal in p[1]
+        ]
+
+        for production in contained_in_productions:
+            rhs = production[1]
+            index = rhs.index(non_terminal)
+
+            if index != len(rhs) - 1:
+                first_set = self._get_first_set(rhs[index + 1 :])
+                self._follow_set[non_terminal].update(first_set)
+
+                if '""' in first_set:
+                    self._parse_non_terminal_follow_set(production[0])
+                    self._follow_set[non_terminal].update(
+                        self._follow_set[production[0]]
+                    )
+            else:
+                if production[0] != non_terminal:
+                    self._parse_non_terminal_follow_set(production[0])
+                    self._follow_set[non_terminal].update(
+                        self._follow_set[production[0]]
+                    )
+
+        if '""' in self._follow_set.get(non_terminal, set()):
+            self._follow_set[non_terminal].remove('""')
