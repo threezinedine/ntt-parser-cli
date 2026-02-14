@@ -97,12 +97,14 @@ class Gramma:
         self._start_non_terminal: str = ""
         self._first_set: dict[str, set[str]] = {}
         self._follow_set: dict[str, set[str]] = {}
+        self._parsing_table: dict[str, dict[str, int | None]] = {}
         self._lexicals: dict[str, str] = lexicals
 
         tokens = self._lexical_analysis(gramma_part)
         self._parse_gramma_part(tokens)
         self._parse_first_set()
         self._parse_follow_set()
+        # self._parse_parsing_table()
 
     def _lexical_analysis(self, gramma_part: str) -> list[Token]:
         cursor = 0
@@ -353,7 +355,7 @@ class Gramma:
         while index < len(symbols):
             symbol = symbols[index]
 
-            if symbol in self._terminals:
+            if symbol in self._terminals or symbol in self._lexicals:
                 if symbol == '""':
                     index += 1
                     continue
@@ -406,3 +408,73 @@ class Gramma:
 
         if '""' in self._follow_set.get(non_terminal, set()):
             self._follow_set[non_terminal].remove('""')
+
+    def parse_parsing_table(self) -> None:
+        """
+        |      terminal        |      lexical         |  $
+        """
+        for non_terminal in self._non_terminals:
+            self._parsing_table[non_terminal] = {}
+
+            first_set = self._first_set.get(non_terminal, set())
+            follow_set = self._follow_set.get(non_terminal, set())
+
+            for terminal in self._terminals:
+                if terminal in first_set and terminal != '""':
+                    self._parsing_table[non_terminal][terminal] = (
+                        self._find_production_index(non_terminal, terminal)
+                    )
+                else:
+                    self._parsing_table[non_terminal][terminal] = None
+
+                if '""' in first_set:
+                    for terminal in follow_set:
+                        self._parsing_table[non_terminal][terminal] = (
+                            self._find_esp_production_index(non_terminal)
+                        )
+
+            for lexical in self._lexicals:
+                self._parsing_table[non_terminal][lexical] = (
+                    self._find_production_index(non_terminal, lexical)
+                )
+                # self._parsing_table[non_terminal][lexical] = None
+
+            if "$" not in self._parsing_table[non_terminal]:
+                self._parsing_table[non_terminal]["$"] = None
+            # if "$" in follow_set:
+            #     self._parsing_table[non_terminal]["$"] = self._find_production_index(
+            #         non_terminal, '""'
+            #     )
+            # else:
+            #     self._parsing_table[non_terminal]["$"] = None
+
+            if '""' in self._parsing_table[non_terminal]:
+                del self._parsing_table[non_terminal]['""']
+
+    def _find_esp_production_index(self, non_terminal: str) -> int | None:
+        for index, production in enumerate(self._productions):
+            lhs = production[0]
+            rhs = production[1]
+            if lhs != non_terminal:
+                continue
+
+            if rhs == ['""']:
+                return index
+
+        return None
+
+    def _find_production_index(self, non_terminal: str, terminal: str) -> int | None:
+        for index, production in enumerate(self._productions):
+            lhs = production[0]
+            rhs = production[1]
+            if lhs != non_terminal:
+                continue
+
+            if terminal in self._get_first_set(rhs):
+                return index
+
+        return None
+
+    @property
+    def ParsingTable(self) -> dict[str, dict[str, int | None]]:
+        return self._parsing_table
