@@ -102,6 +102,7 @@ class Gramma:
         tokens = self._lexical_analysis(gramma_part)
         self._parse_gramma_part(tokens)
         self._parse_first_set()
+        self._parse_follow_set()
 
     def _lexical_analysis(self, gramma_part: str) -> list[Token]:
         cursor = 0
@@ -338,7 +339,7 @@ class Gramma:
                 else:
                     break
 
-    def parse_follow_set(self) -> None:
+    def _parse_follow_set(self) -> None:
         self._parse_non_terminal_follow_set(self._start_non_terminal)
 
         for non_terminal in self._non_terminals:

@@ -88,6 +88,14 @@ def test_create_first_and_follow_sets():
         ],
     )
 
+    assert_follow_set_machine(
+        gramma,
+        [
+            ("S", {"$"}),
+            ("A", {'"b"'}),
+        ],
+    )
+
 
 def test_first_set_with_epsilon_production():
     gramma_str = """
@@ -113,6 +121,14 @@ def test_first_set_with_epsilon_production():
         [
             ("S", {'""', '"a"', '"acc"'}),
             ("A", {'""', '"a"'}),
+        ],
+    )
+
+    assert_follow_set_machine(
+        gramma,
+        [
+            ("S", {"$"}),
+            ("A", {'"b"'}),
         ],
     )
 
@@ -159,8 +175,6 @@ def test_first_set_for_complex_case():
             ("F", {'"("', "number"}),
         ],
     )
-
-    gramma.parse_follow_set()
 
     assert_follow_set_machine(
         gramma,
